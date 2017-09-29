@@ -19,7 +19,7 @@ namespace MissionPlanning
 
             if (args != null)
             {
-                _p.StartBeating(args[0], "MissionPlanning", ModuleType.NonCritical);
+                _p.StartBeating(args[0], "MissionPlanning", ModuleType.Critical);
             }
             else
             {
@@ -32,7 +32,7 @@ namespace MissionPlanning
             crashTimer.Elapsed += CrashTimer_Elapsed;
             crashTimer.Enabled = true;
 
-            var workTimer = new Timer { Interval = 3000 };
+            var workTimer = new Timer { Interval = 1000 };
             workTimer.Elapsed += WorkTimer_Elapsed;
             workTimer.Enabled = true;
 

@@ -29,11 +29,13 @@ namespace Common
         {
             if (_pipeStream == null)
             {
-                _pipeStream = new NamedPipeClientStream("PipeTo" + _parentProcessId + _type);
+                Console.WriteLine("PipeTo" + _parentProcessId + _type.ToString());
+                _pipeStream = new NamedPipeClientStream("PipeTo" + _parentProcessId + _type.ToString());
                 _pipeStream.Connect();
-                _streamWriter = new StreamWriter(_pipeStream);
-
-                _streamWriter.AutoFlush = true;
+                _streamWriter = new StreamWriter(_pipeStream)
+                {
+                    AutoFlush = true
+                };
                 _streamWriter.WriteLine($"{_module};Connected");
             }
         }
