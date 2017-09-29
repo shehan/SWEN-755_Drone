@@ -14,23 +14,29 @@ namespace Main
     class Program
     {
         private static Program _program;
-        private static readonly string[] monitors = { @"Monitors\NonCriticalMonitor", @"Monitors\CriticalMonitor" };
+        private static string criticalProcessId;
+        private static string nonCriticalProcessId;
+        private static readonly string[] Monitors = { @"Monitors\NonCriticalMonitor", @"Monitors\CriticalMonitor" };
+        private static readonly string[] CriticalModules = { @"Modules\ObstacleAvoidance" };
+        private static readonly string[] NonCriticalModules = { @"Modules\MissionPlanning" };
 
         static void Main(string[] args)
         {
             _program = new Program();
 
-            foreach (var monitor in monitors)
+            foreach (var monitor in Monitors)
             {
+                var moduleCount = monitor.Contains("Non") ? NonCriticalModules.Length : CriticalModules.Length;
                 var pipedServerThread = new Thread(_program.StartServerListner);
                 pipedServerThread.IsBackground = true;
                 pipedServerThread.Start();
 
                 var processStartInfo = new ProcessStartInfo
                 {
-                    FileName = monitor
+                    FileName = monitor,
+                    Arguments = moduleCount.ToString()
                 };
-                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine($"Monitor Process Starting: {monitor}");
                 Process.Start(processStartInfo);
 
@@ -40,9 +46,41 @@ namespace Main
 
         }
 
+        private void SpawnProcess(string type)
+        {
+            if (type.Equals("NONCRITICAL"))
+            {
+                foreach (var nonCriticalModule in NonCriticalModules)
+                {
+                    var processStartInfo = new ProcessStartInfo
+                    {
+                        FileName = nonCriticalModule,
+                        Arguments = nonCriticalProcessId
+                    };
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine($"Non-Critical Process Starting: {nonCriticalModule}");
+                    Process.Start(processStartInfo);
+                }
+            }
+            else
+            {
+                foreach (var criticalModule in CriticalModules)
+                {
+                    var processStartInfo = new ProcessStartInfo
+                    {
+                        FileName = criticalModule,
+                        Arguments = criticalProcessId
+                    };
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine($"Critical Process Starting: {criticalModule}");
+                    Process.Start(processStartInfo);
+                }
+            }
+        }
+
         private void StartServerListner()
         {
-            string module = string.Empty, message, messageType;
+            string module = string.Empty, message, messageType, processId;
             PipeSecurity ps = new PipeSecurity();
             ps.AddAccessRule(new PipeAccessRule("Users", PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
             ps.AddAccessRule(new PipeAccessRule("CREATOR OWNER", PipeAccessRights.FullControl, AccessControlType.Allow));
@@ -50,7 +88,7 @@ namespace Main
             ps.AddAccessRule(new PipeAccessRule("Everyone", PipeAccessRights.ReadWrite, AccessControlType.Allow));
             using (var pipeStream =
                 new NamedPipeServerStream("PipeToMonitor", PipeDirection.InOut,
-                    monitors.Length, PipeTransmissionMode.Message, PipeOptions.WriteThrough, 1024, 1024, ps))
+                    Monitors.Length, PipeTransmissionMode.Message, PipeOptions.WriteThrough, 1024, 1024, ps))
             {
                 pipeStream.WaitForConnection();
 
@@ -60,6 +98,19 @@ namespace Main
                     {
                         module = message.Split(';')[0];
                         messageType = message.Split(';')[1];
+                        processId = message.Split(';')[2];
+
+                        if (module == "Critial Monitor")
+                        {
+                            criticalProcessId = processId;
+                            SpawnProcess("CRITICAL");
+                        }
+                        else
+                        {
+                            nonCriticalProcessId = processId;
+                            SpawnProcess("NONCRITICAL");
+                        }
+
                         switch (messageType)
                         {
                             case "Connected":

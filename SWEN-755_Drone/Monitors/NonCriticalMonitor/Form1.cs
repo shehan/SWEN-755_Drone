@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Drawing;
+﻿using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Common;
 
@@ -17,12 +9,10 @@ namespace NonCriticalMonitor
 {
     public partial class Form1 : Form
     {
-        readonly string[] _modules = new[] { @"Modules\ObstacleAvoidance", @"Modules\MissionPlanning" };
-
-        public Form1()
+        public Form1(string[] args)
         {
             InitializeComponent();
-            monitorControl.Initialize(Process.GetCurrentProcess().Id.ToString(), MonitorControl.ModuleTpe.Critical, _modules.Length);
+            monitorControl.Initialize(Process.GetCurrentProcess().Id.ToString(), MonitorControl.ModuleTpe.Critical, int.Parse(args[1]));
 
             Thread thread = new Thread(Initialize);
             thread.IsBackground = true;
@@ -38,7 +28,7 @@ namespace NonCriticalMonitor
             {
                 AutoFlush = true
             };
-            streamWriter.WriteLine($"NonCritial Monitor;Connected");
+            streamWriter.WriteLine($"NonCritial Monitor;Connected;{Process.GetCurrentProcess().Id.ToString()}");
         }
     }
 }

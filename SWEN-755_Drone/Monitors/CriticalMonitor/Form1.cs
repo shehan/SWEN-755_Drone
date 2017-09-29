@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Threading;
@@ -12,12 +11,10 @@ namespace CriticalMonitor
 
     public partial class Form1 : Form
     {
-        readonly string[] _modules = new[] { @"Modules\ObstacleAvoidance", @"Modules\MissionPlanning" };
-
-        public Form1()
+        public Form1(string[] args)
         {
             InitializeComponent();
-            monitorControl.Initialize(Process.GetCurrentProcess().Id.ToString(), MonitorControl.ModuleTpe.Critical, _modules.Length);
+            monitorControl.Initialize(Process.GetCurrentProcess().Id.ToString(), MonitorControl.ModuleTpe.Critical, int.Parse(args[1]));
 
             Thread thread = new Thread(Initialize);
             thread.IsBackground = true;
@@ -33,7 +30,7 @@ namespace CriticalMonitor
             {
                 AutoFlush = true
             };
-            streamWriter.WriteLine($"Critial Monitor;Connected");
+            streamWriter.WriteLine($"Critial Monitor;Connected;{Process.GetCurrentProcess().Id.ToString()}");
         }
 
 

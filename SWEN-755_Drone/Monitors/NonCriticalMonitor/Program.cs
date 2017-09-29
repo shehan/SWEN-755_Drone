@@ -16,7 +16,8 @@ namespace NonCriticalMonitor
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            string[] args = Environment.GetCommandLineArgs();
+            Application.Run(new Form1(args));
         }
     }
 }
