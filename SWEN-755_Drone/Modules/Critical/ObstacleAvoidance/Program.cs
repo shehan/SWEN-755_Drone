@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Timers;
 using Common;
+using Timer = System.Timers.Timer;
 
 namespace ObstacleAvoidance
 {
@@ -25,7 +27,7 @@ namespace ObstacleAvoidance
             }
 
             var crashTimer = new Timer { Interval = 5000 };
-            crashTimer.Elapsed += CrashTimer_Elapsed;
+            crashTimer.Elapsed += CrashTimer_Elapsed;           
             crashTimer.Enabled = true;
 
             var workTimer = new Timer { Interval = 3000 };
@@ -50,7 +52,8 @@ namespace ObstacleAvoidance
             }
             catch (Exception ex)
             {
-                Process.GetCurrentProcess().Kill();
+                ThreadPool.QueueUserWorkItem(
+                    _ => throw ex);
             }
         }
     }
