@@ -57,7 +57,7 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.monitorControl);
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "CRITICAL Process Monitor";
             this.ResumeLayout(false);
             this.PerformLayout();
 
