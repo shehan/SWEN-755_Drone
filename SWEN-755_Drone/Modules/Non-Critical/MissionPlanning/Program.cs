@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using Common;
+using Timer = System.Timers.Timer;
 
 namespace MissionPlanning
 {
@@ -52,7 +54,8 @@ namespace MissionPlanning
             }
             catch (Exception ex)
             {
-                Process.GetCurrentProcess().Kill();
+                ThreadPool.QueueUserWorkItem(
+                    _ => throw ex);
             }
         }
     }

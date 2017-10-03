@@ -37,6 +37,7 @@ namespace ObstacleAvoidance
             Console.ReadLine();
         }
 
+
         private static void WorkTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             _p.WorkBeat();
