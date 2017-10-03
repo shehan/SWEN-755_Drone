@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -13,6 +15,8 @@ namespace ObjectRecognition
     class Program : Heartbeat
     {
         private static Program _p;
+        private static NamedPipeClientStream _namedPipeClientStream;
+        private static StreamWriter _streamWriter;
 
         static void Main(string[] args)
         {
@@ -29,11 +33,11 @@ namespace ObjectRecognition
                 return;
             }
 
-            var crashTimer = new Timer { Interval = 5000 };
+            var crashTimer = new Timer { Interval = 8000 };
             crashTimer.Elapsed += CrashTimer_Elapsed;
             crashTimer.Enabled = true;
 
-            var workTimer = new Timer { Interval = 3000 };
+            var workTimer = new Timer { Interval = 2000 };
             workTimer.Elapsed += WorkTimer_Elapsed;
             workTimer.Enabled = true;
 
@@ -43,6 +47,19 @@ namespace ObjectRecognition
 
         private static void WorkTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            if (_namedPipeClientStream == null)
+            {
+                _namedPipeClientStream = new NamedPipeClientStream("PipeTo" + "ObstacleAvoidance");
+                _streamWriter = new StreamWriter(_namedPipeClientStream);
+                _namedPipeClientStream.Connect();
+                _streamWriter.WriteLine("ObjectRecognition;Connected;");
+            }
+            else
+            {
+                _streamWriter.WriteLine("ObjectRecognition;Message;" + Guid.NewGuid());
+            }
+
+            _streamWriter.AutoFlush = true;
             _p.WorkBeat();
         }
 
