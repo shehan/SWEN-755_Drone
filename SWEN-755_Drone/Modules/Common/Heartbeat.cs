@@ -22,14 +22,14 @@ namespace Common
             _module = module;
             _type = type;
 
+            Console.WriteLine($"---------{module}---------");
             Initialize();
         }
 
         private void Initialize()
         {
             if (_pipeStream == null)
-            {
-                Console.WriteLine("PipeTo" + _parentProcessId + _type.ToString());
+            {                
                 _pipeStream = new NamedPipeClientStream("PipeTo" + _parentProcessId + _type.ToString());
                 _pipeStream.Connect();
                 _streamWriter = new StreamWriter(_pipeStream)
