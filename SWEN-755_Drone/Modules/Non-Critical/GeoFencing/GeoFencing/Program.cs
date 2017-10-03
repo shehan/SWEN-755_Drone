@@ -6,12 +6,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using Common;
 using Timer = System.Timers.Timer;
+using Common;
 
-namespace MissionPlanning
+namespace GeoFencing
 {
-    class Program: Heartbeat
+    class Program : Heartbeat
 
     {
         private static Program _p;
@@ -21,7 +21,7 @@ namespace MissionPlanning
 
             if (args != null)
             {
-                _p.StartBeating(args[0], "MissionPlanning", ModuleType.NonCritical);
+                _p.StartBeating(args[0], "GeoFencing", ModuleType.NonCritical);
             }
             else
             {
