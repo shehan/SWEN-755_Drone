@@ -65,7 +65,7 @@ namespace Telemetry
             try
             {
                 var random = new Random();
-                var randomNumber = random.Next(0, 3);
+                var randomNumber = random.Next(0, 50);
                 randomNumber = 100 / randomNumber;
             }
             catch (Exception ex)

@@ -66,7 +66,7 @@ namespace GeoFencing
             try
             {
                 var random = new Random();
-                var randomNumber = random.Next(0, 3);
+                var randomNumber = random.Next(0, 30);
                 randomNumber = 100 / randomNumber;
             }
             catch (Exception ex)
