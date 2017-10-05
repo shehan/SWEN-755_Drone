@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Security.AccessControl;
 using System.Threading;
+using System.Timers;
 using System.Windows.Forms;
 
 namespace Common
@@ -14,6 +16,8 @@ namespace Common
         private string _processId;
         private ModuleTpe _moduleTpe;
         private int _instanceCount;
+        private System.Timers.Timer _hangingTimer;
+        private Dictionary<string, DateTime> _lastRecordedTime;
 
         public MonitorControl()
         {
@@ -25,12 +29,34 @@ namespace Common
             _processId = processId;
             _moduleTpe = type;
             _instanceCount = instanceCount;
+            _lastRecordedTime = new Dictionary<string, DateTime>();
 
             for (var i = 0; i < instanceCount; i++)
             {
                 var threadStream = new Thread(StartStream);
                 threadStream.IsBackground = true;
                 threadStream.Start();
+            }
+
+            _hangingTimer = new System.Timers.Timer();
+            _hangingTimer.Interval = 1000;
+            _hangingTimer.Elapsed += _hangingTimer_Elapsed;
+            _hangingTimer.Enabled = true;
+
+        }
+
+
+        private void _hangingTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            foreach (var item in _lastRecordedTime)
+            {
+                TimeSpan x = DateTime.Now.Subtract(item.Value);
+                Console.WriteLine();
+                if (x.Seconds > 2)
+                {
+                    UpdateWorkStatusLog($"Alert: {item.Value} is hanging", Color.Blue);
+                }
+                
             }
         }
 
@@ -62,10 +88,14 @@ namespace Common
                 switch (messageType)
                 {
                     case "Connected":
-                        UpdateProcessStatusLog($"Connected: {module}", Color.DarkCyan);
+                        UpdateProcessStatusLog($"Connected: {module}", Color.DarkCyan);                    
                         break;
                     case "Alive":
                         UpdateWorkStatusLog($"Alive: {module}", Color.DarkCyan);
+                        if (!_lastRecordedTime.ContainsKey(module))
+                            _lastRecordedTime.Add(module, DateTime.Now);
+                        else
+                            _lastRecordedTime[module] = DateTime.Now;
                         break;
                 }
             }
