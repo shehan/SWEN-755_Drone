@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
@@ -17,6 +18,10 @@ namespace ObjectRecognition
         private static Program _p;
         private static NamedPipeClientStream _namedPipeClientStream;
         private static StreamWriter _streamWriter;
+        private static StreamReader _streamReader;
+        private static Timer _workTimer;
+        private static bool _clientConnected = false;
+        private static int[] delayInts = { 1000, 1000, 1000, 1000, 1000, 5000 };
 
         static void Main(string[] args)
         {
@@ -33,34 +38,96 @@ namespace ObjectRecognition
                 return;
             }
 
-            var crashTimer = new Timer { Interval = 8000 };
-            crashTimer.Elapsed += CrashTimer_Elapsed;
-            crashTimer.Enabled = true;
+            Thread thread = new Thread(_p.Initialize);
+            thread.IsBackground = true;
+            thread.Start();
 
-            var workTimer = new Timer { Interval = 2000 };
-            workTimer.Elapsed += WorkTimer_Elapsed;
-            workTimer.Enabled = true;
+            //var crashTimer = new Timer { Interval = 8000 };
+            // crashTimer.Elapsed += CrashTimer_Elapsed;
+            //   crashTimer.Enabled = true;
+
+            _workTimer = new Timer { Interval = 2000 };
+            _workTimer.Elapsed += WorkTimer_ElapsedAsync;
+            _workTimer.Enabled = true;
 
             Console.ReadLine();
         }
 
-
-        private static void WorkTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private void Initialize()
         {
-            if (_namedPipeClientStream == null)
-            {
-                _namedPipeClientStream = new NamedPipeClientStream("PipeTo" + "ObstacleAvoidance");
-                _streamWriter = new StreamWriter(_namedPipeClientStream);
-                _namedPipeClientStream.Connect();
-                _streamWriter.WriteLine("ObjectRecognition;Connected;");
-            }
-            else
-            {
-                _streamWriter.WriteLine("ObjectRecognition;Message;" + Guid.NewGuid());
-            }
-
+            _namedPipeClientStream = new NamedPipeClientStream("PipeTo" + "ObstacleAvoidance");
+            _namedPipeClientStream.Connect();
+            _clientConnected = true;
+            _streamReader = new StreamReader(_namedPipeClientStream);
+            _streamWriter = new StreamWriter(_namedPipeClientStream);
             _streamWriter.AutoFlush = true;
-            _p.WorkBeat();
+            _streamWriter.WriteLine($"ObjectRecognition;Connected;{Process.GetCurrentProcess().Id.ToString()}");
+        }
+
+        private static async void WorkTimer_ElapsedAsync(object sender, ElapsedEventArgs e)
+        {
+            _workTimer.Stop();
+            try
+            {
+                if (_clientConnected)
+                {
+                    if (!_namedPipeClientStream.IsConnected)
+                    {
+                        _clientConnected = false;
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Connection to ObstacleAvoidance lost!");
+                    }
+                }
+                else
+                {
+                    _workTimer.Start();
+                    return;
+                }
+
+
+                string text = string.Empty;
+                if (null != _streamReader)
+                {
+                    string message = string.Empty;
+
+                    char[] buf = new char[300];
+
+                    int count = await _streamReader.ReadAsync(buf, 0, 300);
+
+                    if (0 < count)
+                    {
+                        message = new string(buf, 0, count);
+                    }
+
+                    var module = message.Split(';')[0];
+                    var messageType = message.Split(';')[1];
+                    text = message.Split(';')[2];
+
+                    if (module == "ObstacleAvoidance")
+                    {
+                        switch (messageType)
+                        {
+                            case "Message":
+                                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                                Console.WriteLine($"Message received: {message}");
+                                break;
+                        }
+                    }
+                }
+
+                if (null != _streamWriter)
+                {
+                    _streamWriter.AutoFlush = true;
+                    _streamWriter.Write($"ObjectRecognition;Ack;{text}");
+                }
+
+                _p.WorkBeat();
+                _workTimer.Start();
+            }
+            catch (Exception error)
+            {
+                Console.WriteLine(error.ToString());
+            }
         }
 
         private static void CrashTimer_Elapsed(object sender, ElapsedEventArgs e)
