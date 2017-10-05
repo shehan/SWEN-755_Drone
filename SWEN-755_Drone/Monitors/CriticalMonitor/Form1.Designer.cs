@@ -57,7 +57,9 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.monitorControl);
             this.Name = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "CRITICAL Process Monitor";
+            this.TopMost = true;
             this.ResumeLayout(false);
             this.PerformLayout();
 
