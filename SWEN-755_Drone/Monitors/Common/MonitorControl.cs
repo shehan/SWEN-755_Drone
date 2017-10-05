@@ -54,7 +54,7 @@ namespace Common
                 Console.WriteLine();
                 if (x.Seconds > 2)
                 {
-                    UpdateWorkStatusLog($"Alert: {item.Value} is hanging", Color.Blue);
+                    UpdateWorkStatusLog($"Alert: {item.Key} is hanging", Color.Blue);
                 }
                 
             }
@@ -102,6 +102,7 @@ namespace Common
 
             UpdateProcessStatusLog($"Disconnected: {module}", Color.Red);
             UpdateWorkStatusLog($"Dead: {module}", Color.Red);
+            _lastRecordedTime.Remove(module);
         }
 
         private void UpdateProcessStatusLog(string text, Color fontColor)
