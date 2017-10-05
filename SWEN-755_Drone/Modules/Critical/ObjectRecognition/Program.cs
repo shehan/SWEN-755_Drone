@@ -21,7 +21,6 @@ namespace ObjectRecognition
         private static StreamReader _streamReader;
         private static Timer _workTimer;
         private static bool _clientConnected = false;
-        private static int[] delayInts = { 1000, 1000, 1000, 1000, 1000, 5000 };
 
         static void Main(string[] args)
         {
@@ -42,9 +41,9 @@ namespace ObjectRecognition
             thread.IsBackground = true;
             thread.Start();
 
-            //var crashTimer = new Timer { Interval = 8000 };
-            // crashTimer.Elapsed += CrashTimer_Elapsed;
-            //   crashTimer.Enabled = true;
+            var crashTimer = new Timer { Interval = 8000 };
+            crashTimer.Elapsed += CrashTimer_Elapsed;
+            crashTimer.Enabled = true;
 
             _workTimer = new Timer { Interval = 2000 };
             _workTimer.Elapsed += WorkTimer_ElapsedAsync;
@@ -67,6 +66,22 @@ namespace ObjectRecognition
         private static async void WorkTimer_ElapsedAsync(object sender, ElapsedEventArgs e)
         {
             _workTimer.Stop();
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Doing Work...");
+            var random = new Random();
+            var randomNumber = random.Next(0, 8);
+            if (randomNumber == 0)
+            {
+                _workTimer.Stop();
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine("Hanging mode active...");
+                Thread.Sleep(5000);
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine("Hanging mode de-active...");
+                _workTimer.Start();
+            }
+
             try
             {
                 if (_clientConnected)
@@ -121,12 +136,14 @@ namespace ObjectRecognition
                     _streamWriter.Write($"ObjectRecognition;Ack;{text}");
                 }
 
+
                 _p.WorkBeat();
                 _workTimer.Start();
             }
             catch (Exception error)
             {
-                Console.WriteLine(error.ToString());
+                ThreadPool.QueueUserWorkItem(
+                    _ => throw error);
             }
         }
 

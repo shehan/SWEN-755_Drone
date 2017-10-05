@@ -12,7 +12,7 @@ namespace NonCriticalMonitor
         public Form1(string[] args)
         {
             InitializeComponent();
-            monitorControl.Initialize(Process.GetCurrentProcess().Id.ToString(), MonitorControl.ModuleTpe.Critical, int.Parse(args[1]));
+            monitorControl.Initialize(Process.GetCurrentProcess().Id.ToString(), MonitorControl.ModuleTpe.NonCritical, int.Parse(args[1]));
 
             Thread thread = new Thread(Initialize);
             thread.IsBackground = true;

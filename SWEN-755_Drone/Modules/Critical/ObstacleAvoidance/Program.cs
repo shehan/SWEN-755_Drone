@@ -40,9 +40,9 @@ namespace ObstacleAvoidance
             pipedServerThread.IsBackground = true;
             pipedServerThread.Start();
 
-            //var crashTimer = new Timer { Interval = 8000 };
-            //crashTimer.Elapsed += CrashTimer_Elapsed;           
-            //crashTimer.Enabled = true;
+            var crashTimer = new Timer { Interval = 8000 };
+            crashTimer.Elapsed += CrashTimer_Elapsed;
+            crashTimer.Enabled = true;
 
             _workTimer = new Timer { Interval = 2000 };
             _workTimer.Elapsed += WorkTimer_Elapsed;
@@ -55,6 +55,23 @@ namespace ObstacleAvoidance
         private static async void WorkTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             _workTimer.Stop();
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Doing Work...");
+            var random = new Random();
+            var randomNumber = random.Next(0, 8);
+            if (randomNumber == 0)
+            {
+                _workTimer.Stop();
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine("Hanging mode active...");
+                Thread.Sleep(5000);
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine("Hanging mode de-active...");
+                _workTimer.Start();
+            }
+
+
             try
             {
                 if (_clientConnected)
@@ -111,7 +128,8 @@ namespace ObstacleAvoidance
             }
             catch (Exception error)
             {
-                Console.WriteLine(error.ToString());
+                ThreadPool.QueueUserWorkItem(
+                    _ => throw error);
             }
         }
 
