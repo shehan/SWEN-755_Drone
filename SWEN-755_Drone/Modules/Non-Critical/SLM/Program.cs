@@ -9,7 +9,7 @@ using System.Timers;
 using Timer = System.Timers.Timer;
 using Common;
 
-namespace GeoFencing
+namespace SLM
 {
     class Program : Heartbeat
 
@@ -23,7 +23,7 @@ namespace GeoFencing
 
             if (args != null)
             {
-                _p.StartBeating(args[0], "GeoFencing", ModuleType.NonCritical);
+                _p.StartBeating(args[0], "SLM", ModuleType.NonCritical);
             }
             else
             {
@@ -47,7 +47,7 @@ namespace GeoFencing
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("Doing Work...");
             var random = new Random();
-            var randomNumber = random.Next(0, 8);
+            var randomNumber = random.Next(0, 50);
             if (randomNumber == 0)
             {
                 _workTimer.Stop();
@@ -66,7 +66,7 @@ namespace GeoFencing
             try
             {
                 var random = new Random();
-                var randomNumber = random.Next(0, 30);
+                var randomNumber = random.Next(0, 3);
                 randomNumber = 100 / randomNumber;
             }
             catch (Exception ex)

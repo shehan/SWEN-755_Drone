@@ -41,7 +41,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Heartbeat.cs" />
+    <Compile Include="InterProcessMessage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="InterCommunication.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

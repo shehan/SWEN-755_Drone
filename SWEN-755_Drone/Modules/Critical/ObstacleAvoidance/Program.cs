@@ -85,6 +85,7 @@ namespace ObstacleAvoidance
                 }
                 else
                 {
+                    _p.WorkBeat();
                     _workTimer.Start();
                     return;
                 }
