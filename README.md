@@ -7,4 +7,11 @@ Change the default settings for Windows Error Reporting: https://www.lifewire.co
 Windows 10: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting 
 
 Set 'DontShowUI' to 1
+
 Set 'Disabled' to 1
+
+
+
+##Execution:
+
+Run 'Main.exe' located in the Build folder.
