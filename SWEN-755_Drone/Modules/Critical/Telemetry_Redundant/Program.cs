@@ -1,22 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
-using System.Linq;
-using System.Text;
+using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using Common;
 using Timer = System.Timers.Timer;
 
-namespace Telemetry
+namespace Telemetry_Redundant
 {
     class Program : Heartbeat
     {
         private static Program _p;
-        private static NamedPipeClientStream _namedPipeClientStream;
+        private static NamedPipeServerStream _namedPipeServerStream;
         private static StreamWriter _streamWriter;
         private static StreamReader _streamReader;
         private static Timer _workTimer;
@@ -28,7 +27,7 @@ namespace Telemetry
 
             if (args != null)
             {
-                _p.StartBeating(args[0], "Telemetry", ModuleType.Critical);
+                _p.StartBeating(args[0], "Telemetry_Redundant", ModuleType.Critical);
             }
             else
             {
@@ -37,28 +36,21 @@ namespace Telemetry
                 return;
             }
 
-            var crashTimer = new Timer { Interval = 5000 };
-            crashTimer.Elapsed += CrashTimer_Elapsed;
-            crashTimer.Enabled = true;
+            var pipedServerThread = new Thread(_p.StartServerListner);
+            pipedServerThread.IsBackground = true;
+            pipedServerThread.Start();
+            //var crashTimer = new Timer { Interval = 5000 };
+            //crashTimer.Elapsed += CrashTimer_Elapsed;
+            //crashTimer.Enabled = true;
 
             _workTimer = new Timer { Interval = 2000 };
-            _workTimer.Elapsed += WorkTimer_ElapsedAsync;
+            _workTimer.Elapsed += WorkTimer_Elapsed;
             _workTimer.Enabled = true;
 
             Console.ReadLine();
         }
 
-        private void Initialize()
-        {
-            _namedPipeClientStream = new NamedPipeClientStream("PipeTo" + "Telemetry_Redundant");
-            _namedPipeClientStream.Connect();
-            _clientConnected = true;
-            _streamReader = new StreamReader(_namedPipeClientStream);
-            _streamWriter = new StreamWriter(_namedPipeClientStream);
-            _streamWriter.AutoFlush = true;
-            _streamWriter.WriteLine($"Telemetry;Connected;{Process.GetCurrentProcess().Id.ToString()}");
-        }
-        private static async void WorkTimer_ElapsedAsync(object sender, ElapsedEventArgs e)
+        private static async void WorkTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             _workTimer.Stop();
 
@@ -77,15 +69,16 @@ namespace Telemetry
                 _workTimer.Start();
             }
 
+
             try
             {
                 if (_clientConnected)
                 {
-                    if (!_namedPipeClientStream.IsConnected)
+                    if (!_namedPipeServerStream.IsConnected)
                     {
                         _clientConnected = false;
                         Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Connection to Telemetry_Redundant lost!");
+                        Console.WriteLine("Connection to Telemetry lost!");
                     }
                 }
                 else
@@ -95,12 +88,9 @@ namespace Telemetry
                     return;
                 }
 
-
-                string text = string.Empty;
                 if (null != _streamReader)
                 {
                     string message = string.Empty;
-
                     char[] buf = new char[300];
 
                     int count = await _streamReader.ReadAsync(buf, 0, 300);
@@ -112,15 +102,16 @@ namespace Telemetry
 
                     var module = message.Split(';')[0];
                     var messageType = message.Split(';')[1];
-                    text = message.Split(';')[2];
+                    var text = message.Split(';')[2];
 
-                    if (module == "Telemetry_Redundant")
+                    if (module == "Telemetry")
                     {
+
                         switch (messageType)
                         {
-                            case "Message":
+                            case "Ack":
                                 Console.ForegroundColor = ConsoleColor.DarkYellow;
-                                Console.WriteLine($"Message received: {message}");
+                                Console.WriteLine($"Acknowledgement received: {text}");
                                 break;
                         }
                     }
@@ -129,10 +120,8 @@ namespace Telemetry
                 if (null != _streamWriter)
                 {
                     _streamWriter.AutoFlush = true;
-                    _streamWriter.Write($"Telemetry;Ack;{text}");
+                    _streamWriter.Write($"Telemetry_Redundant;Message;{Guid.NewGuid()}");
                 }
-
-
                 _p.WorkBeat();
                 _workTimer.Start();
             }
@@ -143,19 +132,60 @@ namespace Telemetry
             }
         }
 
-        private static void CrashTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private void StartServerListner()
         {
             try
             {
-                var random = new Random();
-                var randomNumber = random.Next(0, 50);
-                randomNumber = 100 / randomNumber;
+                PipeSecurity ps = new PipeSecurity();
+                ps.AddAccessRule(new PipeAccessRule("Users",
+                    PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
+                ps.AddAccessRule(new PipeAccessRule("CREATOR OWNER", PipeAccessRights.FullControl,
+                    AccessControlType.Allow));
+                ps.AddAccessRule(
+                    new PipeAccessRule("SYSTEM", PipeAccessRights.FullControl, AccessControlType.Allow));
+                ps.AddAccessRule(
+                    new PipeAccessRule("Everyone", PipeAccessRights.ReadWrite, AccessControlType.Allow));
+
+                _namedPipeServerStream = new NamedPipeServerStream(
+                    "PipeTo" + "Telemetry_Redundant",
+                    PipeDirection.InOut,
+                    1, PipeTransmissionMode.Message, PipeOptions.WriteThrough, 1024, 1024, ps);
+
+                _namedPipeServerStream.WaitForConnection();
+                _clientConnected = true;
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"Connection Successful!");
+
+                if (_streamReader == null)
+                {
+                    _streamReader = new StreamReader(_namedPipeServerStream);
+                }
+
+                if (_streamWriter == null)
+                {
+                    _streamWriter = new StreamWriter(_namedPipeServerStream);
+                }
+
             }
-            catch (Exception ex)
+            catch (Exception error)
             {
-                ThreadPool.QueueUserWorkItem(
-                    _ => throw ex);
+                Console.WriteLine(error.ToString());
             }
         }
+
+        //private static void CrashTimer_Elapsed(object sender, ElapsedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        var random = new Random();
+        //        var randomNumber = random.Next(0, 50);
+        //        randomNumber = 100 / randomNumber;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ThreadPool.QueueUserWorkItem(
+        //            _ => throw ex);
+        //    }
+        //}
     }
 }
