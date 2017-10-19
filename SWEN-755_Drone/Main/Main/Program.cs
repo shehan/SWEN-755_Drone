@@ -17,7 +17,7 @@ namespace Main
         private static string criticalProcessId;
         private static string nonCriticalProcessId;
         private static readonly string[] Monitors = {  @"Monitors\CriticalMonitor" };        
-        private static readonly string[] CriticalModules = {@"Modules\Telemetry", @"Modules\WeatherDetection" };
+        private static readonly string[] CriticalModules = {@"Modules\Telemetry",  };
         private static readonly string[] CriticalModulesRedundant = { @"Modules\Telemetry_Redundant" };
         private static readonly string[] NonCriticalModules = {  };
 
@@ -65,21 +65,6 @@ namespace Main
             }
             else
             {
-                foreach (var criticalModule in CriticalModulesRedundant)
-                {
-                    var processStartInfo = new ProcessStartInfo
-                    {
-                        FileName = criticalModule,
-                        Arguments = criticalProcessId
-                    };
-                    Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.WriteLine($"[redundant] Critical Process Starting: {criticalModule}");
-                    Process criticalProcess = new Process();
-                    criticalProcess.StartInfo = processStartInfo;
-                    criticalProcess.Start();
-                    criticalProcess.ProcessorAffinity = (IntPtr)2;
-                }
-
                 foreach (var criticalModule in CriticalModules)
                 {
                     var processStartInfo = new ProcessStartInfo
@@ -95,6 +80,20 @@ namespace Main
                     criticalProcess.ProcessorAffinity = (IntPtr)1;
                 }
 
+                foreach (var criticalModule in CriticalModulesRedundant)
+                {
+                    var processStartInfo = new ProcessStartInfo
+                    {
+                        FileName = criticalModule,
+                        Arguments = criticalProcessId
+                    };
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine($"[redundant] Critical Process Starting: {criticalModule}");
+                    Process criticalProcess = new Process();
+                    criticalProcess.StartInfo = processStartInfo;
+                    criticalProcess.Start();
+                    criticalProcess.ProcessorAffinity = (IntPtr)2;
+                }
             }
         }
 
