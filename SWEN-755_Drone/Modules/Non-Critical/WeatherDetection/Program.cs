@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -16,6 +18,10 @@ namespace WeatherDetection
     {
         private static Program _p;
         private static Timer _workTimer;
+        private static NamedPipeClientStream _pipeStream;
+        private static StreamWriter _streamWriter;
+        private static NamedPipeClientStream _pipeStream2;
+        private static StreamWriter _streamWriter2;
 
         static void Main(string[] args)
         {
@@ -32,6 +38,8 @@ namespace WeatherDetection
                 return;
             }
 
+            _p.Initialize();
+
             var crashTimer = new Timer { Interval = 10000 };
             crashTimer.Elapsed += CrashTimer_Elapsed;
             crashTimer.Enabled = true;
@@ -42,10 +50,41 @@ namespace WeatherDetection
 
             Console.ReadLine();
         }
+
+        private void Initialize()
+        {
+            try
+            {
+                if (_pipeStream == null)
+                {
+                    _pipeStream = new NamedPipeClientStream("PipeTo" + "[Work]Telemetry");
+                    _pipeStream.Connect();
+                    _pipeStream2 = new NamedPipeClientStream("PipeTo" + "[Work]Telemetry");
+                    _pipeStream2.Connect();
+
+                    _streamWriter = new StreamWriter(_pipeStream)
+                    {
+                        AutoFlush = true
+                    };
+
+                    _streamWriter2 = new StreamWriter(_pipeStream2)
+                    {
+                        AutoFlush = true
+                    };
+                }
+            }
+            catch (Exception eee)
+            {
+                Console.WriteLine(eee);
+            }
+        }
+
         private static void WorkTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("Doing Work...");
+
             var random = new Random();
             var randomNumber = random.Next(0, 50);
             if (randomNumber == 0)
@@ -59,7 +98,26 @@ namespace WeatherDetection
                 _workTimer.Start();
             }
 
+            var guid = DateTime.Now.ToString();
+
+            if (_pipeStream.IsConnected | _pipeStream2.IsConnected)
+                Console.WriteLine($"Message Sent: {guid}", ConsoleColor.DarkCyan);
+
+            if (_pipeStream.IsConnected)
+            {
+                _streamWriter.AutoFlush = true;
+                _streamWriter.WriteLine($"WeatherDetection;Message;{guid}");
+            }
+
+            if (_pipeStream2.IsConnected)
+            {
+                _streamWriter2.AutoFlush = true;
+                _streamWriter2.WriteLine($"WeatherDetection;Message;{guid}");
+            }
+
+
             _p.WorkBeat();
+
         }
         private static void CrashTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
@@ -77,3 +135,4 @@ namespace WeatherDetection
         }
     }
 }
+
