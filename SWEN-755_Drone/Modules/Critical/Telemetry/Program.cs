@@ -38,6 +38,10 @@ namespace Telemetry
 
             _p.Initialize();
 
+            var threadWorkStream = new Thread(_p.StartWorkStream);
+            threadWorkStream.IsBackground = true;
+            threadWorkStream.Start();
+
             var crashTimer = new Timer { Interval = 5000 };
             crashTimer.Elapsed += CrashTimer_Elapsed;
             crashTimer.Enabled = true;
@@ -59,6 +63,46 @@ namespace Telemetry
                 {
                     AutoFlush = true
                 };
+            }
+        }
+
+        private void StartWorkStream()
+        {
+            try { 
+            PipeSecurity ps = new PipeSecurity();
+            ps.AddAccessRule(new PipeAccessRule("Users", PipeAccessRights.FullControl, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("CREATOR OWNER", PipeAccessRights.FullControl, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("SYSTEM", PipeAccessRights.FullControl, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("Everyone", PipeAccessRights.FullControl, AccessControlType.Allow));
+
+            NamedPipeServerStream pipeStream = new NamedPipeServerStream("PipeTo" + "[Work]Telemetry", PipeDirection.InOut,
+                -1, PipeTransmissionMode.Message, PipeOptions.WriteThrough, 1024, 1024, ps);
+
+            pipeStream.WaitForConnection();
+
+            StreamReader streamReader = new StreamReader(pipeStream);
+            string module = string.Empty, message = string.Empty, messageType = string.Empty, messageText = string.Empty;
+            while ((message = streamReader.ReadLine()) != null)
+            {
+                module = message.Split(';')[0];
+                messageType = message.Split(';')[1];
+                messageText = message.Split(';').Length == 3 ? message.Split(';')[2] : string.Empty;
+                switch (messageType)
+                {
+                    case "Connected":
+                        Console.WriteLine($"Connected: {module}", ConsoleColor.DarkCyan);
+                        break;
+                    case "Message":
+                        Console.WriteLine($"Message Received: {messageText}", ConsoleColor.Magenta);
+                        break;
+                }
+            }
+
+            Console.WriteLine($"Connection Lost {module}", ConsoleColor.Red);
+            }
+            catch (Exception eee)
+            {
+                Console.WriteLine(eee);
             }
         }
 
