@@ -15,11 +15,8 @@ namespace Telemetry_Redundant
     class Program : Heartbeat
     {
         private static Program _p;
-        private static NamedPipeServerStream _namedPipeServerStream;
-        private static StreamWriter _streamWriter;
-        private static StreamReader _streamReader;
         private static Timer _workTimer;
-        private static bool _clientConnected = false;
+        private static bool _clientConnectionLost = false;
 
         static void Main(string[] args)
         {
@@ -36,9 +33,11 @@ namespace Telemetry_Redundant
                 return;
             }
 
-            var pipedServerThread = new Thread(_p.StartServerListner);
-            pipedServerThread.IsBackground = true;
-            pipedServerThread.Start();
+
+            var threadStream = new Thread(_p.StartStream);
+            threadStream.IsBackground = true;
+            threadStream.Start();
+
             //var crashTimer = new Timer { Interval = 5000 };
             //crashTimer.Elapsed += CrashTimer_Elapsed;
             //crashTimer.Enabled = true;
@@ -50,142 +49,79 @@ namespace Telemetry_Redundant
             Console.ReadLine();
         }
 
-        private static async void WorkTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private void StartStream()
         {
-            _workTimer.Stop();
+            PipeSecurity ps = new PipeSecurity();
+            ps.AddAccessRule(new PipeAccessRule("Users", PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("CREATOR OWNER", PipeAccessRights.FullControl, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("SYSTEM", PipeAccessRights.FullControl, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("Everyone", PipeAccessRights.ReadWrite, AccessControlType.Allow));
 
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("Doing Work...");
-            var random = new Random();
-            var randomNumber = random.Next(0, 8);
-            if (randomNumber == 0)
+            NamedPipeServerStream pipeStream = new NamedPipeServerStream("PipeTo" + "[Redundant]Telemetry", PipeDirection.InOut,
+                1, PipeTransmissionMode.Message, PipeOptions.WriteThrough, 1024, 1024, ps);
+
+            pipeStream.WaitForConnection();
+
+            StreamReader streamReader = new StreamReader(pipeStream);
+            string module = string.Empty, message = string.Empty, messageType = string.Empty,messageText=string.Empty;
+            while ((message = streamReader.ReadLine()) != null)
             {
-                _workTimer.Stop();
-                Console.ForegroundColor = ConsoleColor.DarkYellow;
-                Console.WriteLine("Hanging mode active...");
-                Thread.Sleep(5000);
-                Console.ForegroundColor = ConsoleColor.DarkYellow;
-                Console.WriteLine("Hanging mode de-active...");
-                _workTimer.Start();
+                module = message.Split(';')[0];
+                messageType = message.Split(';')[1];
+                messageText = message.Split(';').Length==3? message.Split(';')[2]:string.Empty;
+                switch (messageType)
+                {
+                    case "Connected":
+                        Console.WriteLine($"Connected: {module}", ConsoleColor.DarkCyan);
+                        break;
+                    case "Message":
+                        Console.WriteLine($"[Sync] Message Received: {messageText}", ConsoleColor.DarkCyan);
+                        break;
+                }
             }
 
+            Console.WriteLine($"Main process dead. Becoming active.", ConsoleColor.Red);
+            _clientConnectionLost = true;
+        }
 
+        private static void WorkTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            if (_clientConnectionLost)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Doing Work...");
+
+                var random = new Random();
+                var randomNumber = random.Next(0, 8);
+                if (randomNumber == 0)
+                {
+                    _workTimer.Stop();
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    Console.WriteLine("Hanging mode active...");
+                    Thread.Sleep(5000);
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    Console.WriteLine("Hanging mode de-active...");
+                    _workTimer.Start();
+                }
+
+            }
+            _p.WorkBeat();
+        }
+
+
+        private static void CrashTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
             try
             {
-                if (_clientConnected)
-                {
-                    if (!_namedPipeServerStream.IsConnected)
-                    {
-                        _clientConnected = false;
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Connection to Telemetry lost!");
-                    }
-                }
-                else
-                {
-                    _p.WorkBeat();
-                    _workTimer.Start();
-                    return;
-                }
-
-                if (null != _streamReader)
-                {
-                    string message = string.Empty;
-                    char[] buf = new char[300];
-
-                    int count = await _streamReader.ReadAsync(buf, 0, 300);
-
-                    if (0 < count)
-                    {
-                        message = new string(buf, 0, count);
-                    }
-
-                    var module = message.Split(';')[0];
-                    var messageType = message.Split(';')[1];
-                    var text = message.Split(';')[2];
-
-                    if (module == "Telemetry")
-                    {
-
-                        switch (messageType)
-                        {
-                            case "Ack":
-                                Console.ForegroundColor = ConsoleColor.DarkYellow;
-                                Console.WriteLine($"Acknowledgement received: {text}");
-                                break;
-                        }
-                    }
-                }
-
-                if (null != _streamWriter)
-                {
-                    _streamWriter.AutoFlush = true;
-                    _streamWriter.Write($"Telemetry_Redundant;Message;{Guid.NewGuid()}");
-                }
-                _p.WorkBeat();
-                _workTimer.Start();
+                var random = new Random();
+                var randomNumber = random.Next(0, 50);
+                randomNumber = 100 / randomNumber;
             }
-            catch (Exception error)
+            catch (Exception ex)
             {
                 ThreadPool.QueueUserWorkItem(
-                    _ => throw error);
+                    _ => throw ex);
             }
         }
-
-        private void StartServerListner()
-        {
-            try
-            {
-                PipeSecurity ps = new PipeSecurity();
-                ps.AddAccessRule(new PipeAccessRule("Users",
-                    PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
-                ps.AddAccessRule(new PipeAccessRule("CREATOR OWNER", PipeAccessRights.FullControl,
-                    AccessControlType.Allow));
-                ps.AddAccessRule(
-                    new PipeAccessRule("SYSTEM", PipeAccessRights.FullControl, AccessControlType.Allow));
-                ps.AddAccessRule(
-                    new PipeAccessRule("Everyone", PipeAccessRights.ReadWrite, AccessControlType.Allow));
-
-                _namedPipeServerStream = new NamedPipeServerStream(
-                    "PipeTo" + "Telemetry_Redundant",
-                    PipeDirection.InOut,
-                    1, PipeTransmissionMode.Message, PipeOptions.WriteThrough, 1024, 1024, ps);
-
-                _namedPipeServerStream.WaitForConnection();
-                _clientConnected = true;
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"Connection Successful!");
-
-                if (_streamReader == null)
-                {
-                    _streamReader = new StreamReader(_namedPipeServerStream);
-                }
-
-                if (_streamWriter == null)
-                {
-                    _streamWriter = new StreamWriter(_namedPipeServerStream);
-                }
-
-            }
-            catch (Exception error)
-            {
-                Console.WriteLine(error.ToString());
-            }
-        }
-
-        //private static void CrashTimer_Elapsed(object sender, ElapsedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        var random = new Random();
-        //        var randomNumber = random.Next(0, 50);
-        //        randomNumber = 100 / randomNumber;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ThreadPool.QueueUserWorkItem(
-        //            _ => throw ex);
-        //    }
-        //}
     }
 }
