@@ -39,7 +39,10 @@ namespace Main
                 };
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine($"Monitor Process Starting: {monitor}");
-                Process.Start(processStartInfo);
+                Process monitorProcess = new Process();
+                monitorProcess.StartInfo = processStartInfo;
+                monitorProcess.Start();
+                monitorProcess.ProcessorAffinity = (IntPtr)1;
 
             }
 
@@ -60,7 +63,10 @@ namespace Main
                     };
                     Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.WriteLine($"Non-Critical Process Starting: {nonCriticalModule}");
-                    Process.Start(processStartInfo);
+                    Process nonCriticalProcess = new Process();
+                    nonCriticalProcess.StartInfo = processStartInfo;
+                    nonCriticalProcess.Start();
+                    nonCriticalProcess.ProcessorAffinity = (IntPtr)1;
                 }
             }
             else
