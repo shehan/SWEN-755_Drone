@@ -40,11 +40,11 @@ namespace WeatherDetection
 
             _p.Initialize();
 
-            var crashTimer = new Timer { Interval = 10000 };
-            crashTimer.Elapsed += CrashTimer_Elapsed;
-            crashTimer.Enabled = true;
+            //var crashTimer = new Timer { Interval = 10000 };
+            //crashTimer.Elapsed += CrashTimer_Elapsed;
+            //crashTimer.Enabled = true;
 
-            _workTimer = new Timer { Interval = 2000 };
+            _workTimer = new Timer { Interval = 1000 };
             _workTimer.Elapsed += WorkTimer_Elapsed;
             _workTimer.Enabled = true;
 
@@ -59,18 +59,18 @@ namespace WeatherDetection
                 {
                     _pipeStream = new NamedPipeClientStream("PipeTo" + "[Work]Telemetry");
                     _pipeStream.Connect();
-                    _pipeStream2 = new NamedPipeClientStream("PipeTo" + "[Work]Telemetry");
-                    _pipeStream2.Connect();
+                    //_pipeStream2 = new NamedPipeClientStream("PipeTo" + "[Work]Telemetry");
+                    //_pipeStream2.Connect();
 
                     _streamWriter = new StreamWriter(_pipeStream)
                     {
                         AutoFlush = true
                     };
 
-                    _streamWriter2 = new StreamWriter(_pipeStream2)
-                    {
-                        AutoFlush = true
-                    };
+                    //_streamWriter2 = new StreamWriter(_pipeStream2)
+                    //{
+                    //    AutoFlush = true
+                    //};
                 }
             }
             catch (Exception eee)
@@ -79,6 +79,7 @@ namespace WeatherDetection
             }
         }
 
+        
         private static void WorkTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
 
@@ -87,20 +88,20 @@ namespace WeatherDetection
 
             var random = new Random();
             var randomNumber = random.Next(0, 50);
-            if (randomNumber == 0)
-            {
-                _workTimer.Stop();
-                Console.ForegroundColor = ConsoleColor.DarkYellow;
-                Console.WriteLine("Hanging mode active...");
-                Thread.Sleep(5000);
-                Console.ForegroundColor = ConsoleColor.DarkYellow;
-                Console.WriteLine("Hanging mode de-active...");
-                _workTimer.Start();
-            }
+            //if (randomNumber == 0)
+            //{
+            //    _workTimer.Stop();
+            //    Console.ForegroundColor = ConsoleColor.DarkYellow;
+            //    Console.WriteLine("Hanging mode active...");
+            //    Thread.Sleep(5000);
+            //    Console.ForegroundColor = ConsoleColor.DarkYellow;
+            //    Console.WriteLine("Hanging mode de-active...");
+            //    _workTimer.Start();
+            //}
 
-            var guid = DateTime.Now.ToString();
+            var guid = DateTime.Now.ToString(); //[new Random().Next(webSites.Length)]; //DateTime.Now.ToString();
 
-            if (_pipeStream.IsConnected | _pipeStream2.IsConnected)
+            if (_pipeStream.IsConnected)// | _pipeStream2.IsConnected)
                 Console.WriteLine($"Message Sent: {guid}", ConsoleColor.DarkCyan);
 
             if (_pipeStream.IsConnected)
@@ -109,11 +110,11 @@ namespace WeatherDetection
                 _streamWriter.WriteLine($"WeatherDetection;Message;{guid}");
             }
 
-            if (_pipeStream2.IsConnected)
-            {
-                _streamWriter2.AutoFlush = true;
-                _streamWriter2.WriteLine($"WeatherDetection;Message;{guid}");
-            }
+            //if (_pipeStream2.IsConnected)
+            //{
+            //    _streamWriter2.AutoFlush = true;
+            //    _streamWriter2.WriteLine($"WeatherDetection;Message;{guid}");
+            //}
 
 
             _p.WorkBeat();

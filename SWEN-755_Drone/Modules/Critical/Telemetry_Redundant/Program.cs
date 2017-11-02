@@ -39,9 +39,12 @@ namespace Telemetry_Redundant
             threadStream.IsBackground = true;
             threadStream.Start();
 
-            var threadWorkStream = new Thread(_p.StartWorkStream);
-            threadWorkStream.IsBackground = true;
-            threadWorkStream.Start();
+            //for (int i = 0; i < 2; i++)
+            //{
+            //    var threadWorkStream = new Thread(_p.StartWorkStream);
+            //    threadWorkStream.IsBackground = true;
+            //    threadWorkStream.Start();
+            //}
 
             //var crashTimer = new Timer { Interval = 5000 };
             //crashTimer.Elapsed += CrashTimer_Elapsed;

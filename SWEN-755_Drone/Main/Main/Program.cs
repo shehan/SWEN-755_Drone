@@ -17,9 +17,11 @@ namespace Main
         private static string criticalProcessId;
         private static string nonCriticalProcessId;
         private static readonly string[] Monitors = { @"Monitors\NonCriticalMonitor", @"Monitors\CriticalMonitor" };
-        private static readonly string[] CriticalModules = { @"Modules\Telemetry", @"Modules\ObstacleAvoidance", @"Modules\ObjectRecognition" };
-        private static readonly string[] CriticalModulesRedundant = { @"Modules\Telemetry_Redundant" };
-        private static readonly string[] NonCriticalModules = { @"Modules\MissionPlanning", @"Modules\GeoFencing", @"Modules\SLM", @"Modules\WeatherDetection" };
+        //private static readonly string[] CriticalModules = { @"Modules\Telemetry", @"Modules\ObstacleAvoidance", @"Modules\ObjectRecognition" };
+        private static readonly string[] CriticalModules = { @"Modules\Telemetry" };
+        private static readonly string[] CriticalModulesRedundant = { @"Modules\Telemetry_Redundant" };        
+        //private static readonly string[] NonCriticalModules = { @"Modules\MissionPlanning", @"Modules\GeoFencing", @"Modules\SLM", @"Modules\WeatherDetection" };
+        private static readonly string[] NonCriticalModules = {@"Modules\WeatherDetection", @"Modules\SLM" };
 
         static void Main(string[] args)
         {
